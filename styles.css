@@ -7,7 +7,7 @@
 }
 @font-face {
   font-family: Daydream;
-  src: url(/Fonts/PixelBit-Free.ttf);
+  src: url(/Fonts/Calvera\ Personal\ Use\ Only.ttf);
 }
 * {
   box-sizing: border-box;
@@ -68,7 +68,7 @@ h1 {
   font-family: Daydream;
   letter-spacing: 4px;
   font-weight: 300;
-  font-size: 3.5rem;
+  font-size: 4rem;
   color: #e6eef8;
   text-shadow: 0 0 20px rgba(45, 212, 191, 0.3);
 }
