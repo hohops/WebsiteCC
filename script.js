@@ -99,12 +99,21 @@
 			// Try sign in
 			let resp = await supabase.auth.signInWithPassword({ email, password });
 			if(resp.error){
-				// If sign in failed because user doesn't exist, try sign up
+				console.log('SignIn failed, checking error:', resp.error.message);
+				// If sign in failed, try sign up
 				const signup = await supabase.auth.signUp({ email, password });
-				if(signup.error){ console.error('Supabase signup error', signup.error); return null; }
+				if(signup.error){ 
+					console.error('Supabase signup error', signup.error); 
+					alert('Erro: ' + signup.error.message);
+					return null; 
+				}
 				// attempt sign in after signup
 				resp = await supabase.auth.signInWithPassword({ email, password });
-				if(resp.error){ console.error('Supabase signin after signup error', resp.error); }
+				if(resp.error){ 
+					console.error('Supabase signin after signup error', resp.error);
+					alert('Erro ao entrar: ' + resp.error.message);
+					return null;
+				}
 			}
 			const user = (resp.data && resp.data.user) || resp.user || null;
 			// ensure a profile row exists for this username
@@ -112,7 +121,11 @@
 				await supabase.from('profiles').upsert({ username: username, points: 0 }, { onConflict: 'username' });
 			}catch(e){ console.error('ensure profile row error', e); }
 			return { username, user };
-		}catch(e){ console.error('loginWithSupabase exception', e); return null; }
+		}catch(e){ 
+			console.error('loginWithSupabase exception', e); 
+			alert('Erro inesperado: ' + e.message);
+			return null; 
+		}
 	}
 
 	// --- UI helpers (use cached questionsCache) ---
@@ -185,32 +198,22 @@
 	// --- Auth / Answer flow ---
 	async function loginProfile(username, password){
 		console.log('Attempting login for:', username);
-		const existing = await getProfileByUsername(username);
-		if(!existing){
-			console.log('User not found:', username);
-			alert('Usuário não encontrado. Registre-se primeiro.');
-			return null;
-		}
-		if(existing.password && existing.password !== password){
-			console.log('Invalid password for:', username);
-			alert('Senha incorreta.');
+		const result = await loginWithSupabase(username, password);
+		if(!result){
 			return null;
 		}
 		console.log('Login successful for:', username);
-		return existing;
+		return result;
 	}
 
 	async function registerProfile(username, password){
 		console.log('Attempting registration for:', username);
-		const existing = await getProfileByUsername(username);
-		if(existing){
-			console.log('User already exists:', username);
-			alert('Usuário já existe. Faça login.');
+		const result = await loginWithSupabase(username, password);
+		if(!result){
 			return null;
 		}
-		const profile = await createProfile(username, password);
 		console.log('Registration successful for:', username);
-		return profile;
+		return result;
 	}
 
 	async function handleAnswer(q, opt, el){
@@ -268,23 +271,29 @@
 	function attach(){
 		$('btn-login').addEventListener('click', async ()=>{
 			const name = $('username').value.trim(); const pwd = $('password').value; if(!name||!pwd){alert('Digite nome e senha');return}
-			$('btn-login').classList.add('loading'); $('btn-login').textContent = 'Entrando...';
+			$('btn-login').querySelector('.original').textContent = 'Entrando...';
 			const profile = await loginProfile(name,pwd);
-			$('btn-login').classList.remove('loading'); $('btn-login').textContent = 'Entrar';
+			$('btn-login').querySelector('.original').textContent = 'Entrar';
 			if(!profile) return;
 			localStorage.setItem(STORAGE_KEYS.CURRENT, name);
 			await renderAuth(); await renderQuestion(); await renderLeaderboard();
 		});
 		$('btn-register').addEventListener('click', async ()=>{
 			const name = $('username').value.trim(); const pwd = $('password').value; if(!name||!pwd){alert('Digite nome e senha');return}
-			$('btn-register').classList.add('loading'); $('btn-register').textContent = 'Registrando...';
+			$('btn-register').querySelector('.original').textContent = 'Registrando...';
 			const profile = await registerProfile(name,pwd);
-			$('btn-register').classList.remove('loading'); $('btn-register').textContent = 'Registrar';
+			$('btn-register').querySelector('.original').textContent = 'Registrar';
 			if(!profile) return;
 			localStorage.setItem(STORAGE_KEYS.CURRENT, name);
 			await renderAuth(); await renderQuestion(); await renderLeaderboard();
 		});
-		$('btn-logout').addEventListener('click', ()=>{ localStorage.removeItem(STORAGE_KEYS.CURRENT); renderAuth(); renderQuestion(); $('q-result').classList.add('hidden'); });
+		$('btn-logout').addEventListener('click', async ()=>{ 
+			if(supabase) await supabase.auth.signOut();
+			localStorage.removeItem(STORAGE_KEYS.CURRENT); 
+			renderAuth(); 
+			renderQuestion(); 
+			$('q-result').classList.add('hidden'); 
+		});
 		$('btn-admin-login').addEventListener('click', ()=>{ adminLogin($('admin-token').value.trim()) });
 		$('btn-add-q').addEventListener('click', addQuestionFromAdmin);
 

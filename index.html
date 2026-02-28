@@ -7,18 +7,54 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="container"></div>
   <header>
-    <h1>Quiz Diário de Ciência</h1>
-    <p>Responda a pergunta do dia, ganhe pontos e veja o placar!</p>
+    <h1>Quiz Diário das Ciências</h1>
+    <p>Responde a pergunta do dia, ganha pontos e vê o placar!</p>
   </header>
 
   <main>
     <section id="auth">
       <div id="login-panel">
-        <input id="username" placeholder="Seu nome de usuário" aria-label="username">
-        <input id="password" type="password" placeholder="Senha" aria-label="password">
-        <button id="btn-login">Entrar</button>
-        <button id="btn-register">Registrar</button>
+        <div class="form-control">
+          <input id="username" type="text" required="">
+          <label>
+            <span style="transition-delay:0ms">U</span><span style="transition-delay:50ms">s</span><span style="transition-delay:100ms">e</span><span style="transition-delay:150ms">r</span><span style="transition-delay:200ms">n</span><span style="transition-delay:250ms">a</span><span style="transition-delay:300ms">m</span><span style="transition-delay:350ms">e</span>
+          </label>
+        </div>
+        <div class="form-control">
+          <input id="password" type="password" required="">
+          <label>
+            <span style="transition-delay:0ms">P</span><span style="transition-delay:50ms">a</span><span style="transition-delay:100ms">s</span><span style="transition-delay:150ms">s</span><span style="transition-delay:200ms">w</span><span style="transition-delay:250ms">o</span><span style="transition-delay:300ms">r</span><span style="transition-delay:350ms">d</span>
+          </label>
+        </div>
+        <button class="btn-53" id="btn-login">
+  <div class="original">Entrar</div>
+  <div class="letters">
+    
+    <span>E</span>
+    <span>N</span>
+    <span>T</span>
+    <span>R</span>
+    <span>A</span>
+    <span>R</span>
+  </div>
+</button>
+<button class="btn-53" id="btn-register">
+  <div class="original">Registrar</div>
+  <div class="letters">
+    
+    <span>R</span>
+    <span>E</span>
+    <span>G</span>
+    <span>I</span>
+    <span>S</span>
+    <span>T</span>
+    <span>R</span>
+    <span>A</span>
+    <span>R</span>
+    </div>
+</button>
       </div>
       <div id="profile" class="hidden">
         <span id="welcome"></span>
