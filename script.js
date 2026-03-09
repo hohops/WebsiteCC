@@ -93,39 +93,27 @@
 
 	// If Supabase is enabled, use Supabase Auth to sign-in or sign-up users.
 	async function loginWithSupabase(username, password){
-		if(!supabase) return null;
-		const email = `${username}@local.quiz`; // map username to a synthetic email for Auth
-		try{
-			// Try sign in
-			let resp = await supabase.auth.signInWithPassword({ email, password });
-			if(resp.error){
-				console.log('SignIn failed, checking error:', resp.error.message);
-				// If sign in failed, try sign up
-				const signup = await supabase.auth.signUp({ email, password });
-				if(signup.error){ 
-					console.error('Supabase signup error', signup.error); 
-					alert('Erro: ' + signup.error.message);
-					return null; 
-				}
-				// attempt sign in after signup
-				resp = await supabase.auth.signInWithPassword({ email, password });
-				if(resp.error){ 
-					console.error('Supabase signin after signup error', resp.error);
-					alert('Erro ao entrar: ' + resp.error.message);
-					return null;
-				}
-			}
-			const user = (resp.data && resp.data.user) || resp.user || null;
-			// ensure a profile row exists for this username
-			try{
-				await supabase.from('profiles').upsert({ username: username, points: 0 }, { onConflict: 'username' });
-			}catch(e){ console.error('ensure profile row error', e); }
-			return { username, user };
-		}catch(e){ 
-			console.error('loginWithSupabase exception', e); 
-			alert('Erro inesperado: ' + e.message);
-			return null; 
-		}
+	  if(!supabase) return null;
+	  try{
+	    // Look up profile by username in the `profiles` table.
+	    const { data, error } = await supabase.from('profiles').select('*').eq('username', username).limit(1).maybeSingle();
+	    if(error){ console.error('Error fetching profile during login:', error); alert('Erro: ' + (error.message || 'problema ao verificar usuário')); return null; }
+
+	    // If profile exists, validate password
+	    if(data){
+	      if((data.password || '') === password){
+	        return { username, user: data };
+	      } else {
+	        alert('Senha incorreta');
+	        return null;
+	      }
+	    }
+
+	    // If not found, create a new profile with provided username/password
+	    const { data: created, error: insertErr } = await supabase.from('profiles').insert({ username, password, points: 0 }).select().maybeSingle();
+	    if(insertErr){ console.error('Error creating profile during signup:', insertErr); alert('Erro: ' + (insertErr.message || 'não foi possível criar usuário')); return null; }
+	    return { username, user: created };
+	  }catch(e){ console.error('loginWithSupabase exception', e); alert('Erro inesperado: ' + (e.message||e)); return null; }
 	}
 
 	// --- UI helpers (use cached questionsCache) ---
@@ -165,7 +153,7 @@
 		const p = await getProfileByUsername(localStorage.getItem(STORAGE_KEYS.CURRENT));
 		if(p && (p.last_answer_date===todayISO() || p.lastAnswered===todayISO())){
 			Array.from(opts.children).forEach(ch=>ch.style.pointerEvents='none');
-			showResult(false,'Você já respondeu hoje. Volte amanhã.');
+			showResult(false,'Já respondeste hoje. Volta amanhã.');
 			return;
 		}
 	}
@@ -196,14 +184,30 @@
 	function showResult(ok, text){ const el = $('q-result'); el.className=''; el.classList.add(ok? 'correct':'wrong'); el.classList.remove('hidden'); el.textContent = text; }
 
 	// --- Auth / Answer flow ---
+	// Login only - does NOT create new accounts, only logs into existing ones
 	async function loginProfile(username, password){
 		console.log('Attempting login for:', username);
-		const result = await loginWithSupabase(username, password);
-		if(!result){
-			return null;
-		}
-		console.log('Login successful for:', username);
-		return result;
+		if(!supabase) return null;
+		try{
+			// Look up profile by username
+			const { data, error } = await supabase.from('profiles').select('*').eq('username', username).limit(1).maybeSingle();
+			if(error){ console.error('Error fetching profile during login:', error); alert('Erro: ' + (error.message || 'problema ao verificar usuário')); return null; }
+			
+			// Profile must exist
+			if(!data){
+				alert('Usuário não encontrado. Registre-se primeiro.');
+				return null;
+			}
+			
+			// Validate password
+			if((data.password || '') === password){
+				console.log('Login successful for:', username);
+				return { username, user: data };
+			} else {
+				alert('Senha incorreta');
+				return null;
+			}
+		}catch(e){ console.error('loginProfile exception', e); alert('Erro inesperado: ' + (e.message||e)); return null; }
 	}
 
 	async function registerProfile(username, password){
@@ -246,7 +250,7 @@
 		if(correct) el.classList.add('correct-opt'); else el.classList.add('wrong-opt');
 		Array.from($('q-options').children).forEach(ch=>{ if(ch.dataset.opt===q.correct) ch.classList.add('correct-opt'); });
 
-		showResult(correct, correct? 'Correto! +1 ponto' : 'Incorreto. +0 ponto');
+		showResult(correct, correct? 'Correto! +1 ponto. Volta amanhã!' : 'Incorreto. +0 ponto');
 		// refresh welcome/leaderboard
 		await renderAuth(); await renderLeaderboard();
 	}
